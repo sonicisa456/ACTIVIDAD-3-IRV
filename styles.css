@@ -1,0 +1,115 @@
+/* 1. AJUSTES GENERALES */
+body {
+    background-color: #3b3030;
+    color: white;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* 2. ENCABEZADO REFINADO */
+header {
+    position: relative;
+    background-color: #000;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.boton-volver-header {
+    position: absolute; /* Lo mueve a una esquina */
+    top: 20px;
+    left: 20px;
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    border: 1px solid white;
+    padding: 5px 12px;
+    border-radius: 4px;
+}
+
+.boton-volver-header:hover {
+    background-color: white;
+    color: black;
+}
+
+/* 3. CONTENEDOR DE PROYECTOS */
+
+#proyectos {
+    display: flex;
+    flex-direction: column; 
+    align-items: center;
+    padding: 20px;
+}
+
+.proyecto {
+    background-color: white;
+    color: black;
+    padding: 20px;
+    margin: 15px;
+    border-radius: 10px;
+    max-width: 400px; /* Para que no se estire demasiado */
+}
+
+.proyecto img {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+}
+
+/* 4. FORMULARIO ORDENADO */
+#contacto {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+}
+
+form {
+    width: 100%;
+    max-width: 500px;
+}
+
+input, textarea {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: none;
+}
+
+button {
+    background-color: #0070d1;
+    color: white;
+    padding: 15px;
+    border: none;
+    border-radius: 5px;
+    width: 100%;
+    cursor: pointer;
+}
+
+/* 5. REVISIÓN FINAL: DISEÑO PARA COMPU (Media Query) */
+/* Cuando la pantalla es grande, cambiamos de columna a fila */
+@media (min-width: 768px) {
+    #proyectos {
+        flex-direction: row; /* Pone los proyectos de lado */
+        justify-content: center;
+        flex-wrap: wrap; /* Si no caben, bajan a la siguiente fila */
+    }
+
+    .proyecto {
+        width: 30%; /* Cada uno toma un tercio del ancho */
+    }
+}
+
+/* 6. PIE DE PÁGINA */
+footer {
+    text-align: center;
+    padding: 30px;
+    background-color: #111;
+}
+
+footer a { 
+    color: #0070d1;
+    margin: 0 10px;
+    text-decoration: none;
+}

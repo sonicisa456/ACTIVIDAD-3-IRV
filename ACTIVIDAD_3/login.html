@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Mis Proyectos</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; text-align: center; padding-top: 100px; }
+        .login-card { background: #1e1e1e; display: inline-block; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        input { display: block; margin: 10px auto; padding: 12px; width: 200px; border-radius: 5px; border: none; }
+        button { padding: 10px 25px; background: #0070d1; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056a5; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>Acceso Privado</h2>
+        <input type="text" id="user" placeholder="Usuario">
+        <input type="password" id="pass" placeholder="Contraseña">
+        <button onclick="login()">Entrar</button>
+    </div>
+
+    <script src="users.js"></script>
+    <script>
+        function login() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+            const valid = users.find(user => user.username === u && user.password === p);
+
+            if (valid) {
+                localStorage.setItem('session', 'active');
+                window.location.href = '../ACTIVIDAD_1/enlaceweb.html';
+            } else {
+                alert("Acceso denegado");
+            }
+        }
+    </script>
+</body>
+</html>

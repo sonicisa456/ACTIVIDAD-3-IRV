@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Proyectos Web</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: #e0e0e0; text-align: center; padding: 50px; }
+        
+        /* Botones principales */
+        .boton {
+            display: inline-block; padding: 15px 25px; margin: 10px;
+            background-color: #0070d1; color: white; border: none;
+            border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;
+        }
+
+        /* Estilos del Modal (Ventana emergente) */
+        .modal {
+            display: none; position: fixed; z-index: 1; top: 0; left: 0;
+            width: 100%; height: 100%; background-color: rgba(0,0,0,0.8);
+        }
+        .modal-content {
+            background-color: #1e1e1e; margin: 15% auto; padding: 20px;
+            border-radius: 10px; width: 300px; border: 1px solid #333;
+        }
+        input { display: block; margin: 10px auto; padding: 10px; width: 80%; border-radius: 5px; border: none; }
+        .btn-entrar { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h1>Mis Proyectos Web</h1>
+    <p>Haz clic en un proyecto para acceder:</p>
+
+    <button onclick="abrirLogin('../index.html')" class="boton">Ir a Sony Corporation</button>
+    <button onclick="abrirLogin('../ACTIVIDAD_3/gestor.html')" class="boton">Ir al Gestor de Tareas</button>
+
+    <div id="modalLogin" class="modal">
+        <div class="modal-content">
+            <h3>Iniciar Sesión</h3>
+            <input type="text" id="user" placeholder="Usuario">
+            <input type="password" id="pass" placeholder="Contraseña">
+            <button class="btn-entrar" onclick="validarAcceso()">Entrar</button>
+            <button onclick="cerrarModal()" style="background:none; border:none; color:gray; cursor:pointer; margin-top:10px;">Cancelar</button>
+        </div>
+    </div>
+
+    <script src="../ACTIVIDAD_3/users.js"></script>
+    <script>
+        let urlDestino = "";
+
+        function abrirLogin(url) {
+            urlDestino = url; // Guardamos a dónde quiere ir el usuario
+            document.getElementById('modalLogin').style.display = 'block';
+        }
+
+        function cerrarModal() {
+            document.getElementById('modalLogin').style.display = 'none';
+        }
+
+        function validarAcceso() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+
+            const coincidencia = users.find(user => user.username === u && user.password === p);
+
+            if (coincidencia) {
+                window.location.href = urlDestino; // Redirige al destino guardado
+            } else {
+                alert("Usuario o contraseña incorrectos");
+            }
+        }
+    </script>
+</body>
+</html>
