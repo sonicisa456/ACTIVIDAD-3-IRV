@@ -29,37 +29,38 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
     }
 
-    // 🔒 Bloqueo por defecto
-    if (botonAgregar) botonAgregar.style.display = "none";
-    if (btnEditar) btnEditar.style.display = "none";
-    if (btnEliminar) btnEliminar.style.display = "none";
-    if (asignadoAInput) asignadoAInput.style.display = "none";
-    if (fechaLimiteInput) fechaLimiteInput.style.display = "none";
+    // Bloqueo por defecto
+    botonAgregar.style.display = "none";
+    btnEditar.style.display = "none";
+    btnEliminar.style.display = "none";
+    asignadoAInput.style.display = "none";
+    fechaLimiteInput.style.display = "none";
 
     // Todos pueden cambiar estado
-    if (btnEstado) btnEstado.style.display = "inline-block";
+    btnEstado.style.display = "inline-block";
 
-    // 🔓 Solo admin
+    // Solo admin
     if (rol === "admin") {
-        if (botonAgregar) botonAgregar.style.display = "inline-block";
-        if (btnEditar) btnEditar.style.display = "inline-block";
-        if (btnEliminar) btnEliminar.style.display = "inline-block";
-        if (asignadoAInput) asignadoAInput.style.display = "inline-block";
-        if (fechaLimiteInput) fechaLimiteInput.style.display = "inline-block";
+        botonAgregar.style.display = "inline-block";
+        btnEditar.style.display = "inline-block";
+        btnEliminar.style.display = "inline-block";
+        asignadoAInput.style.display = "inline-block";
+        fechaLimiteInput.style.display = "inline-block";
     }
 
     let tareas = [];
     let tareaSeleccionada = null;
 
     async function cargarTareas() {
-        const res = await fetch("/tareas", {
+        const res = await fetch("http://localhost:3000/tareas", {
             headers: { Authorization: "Bearer " + token }
         });
 
         const data = await res.json();
 
-        // Usuarios normales solo ven sus tareas
-        tareas = rol === "admin" ? data : data.filter(t => t.asignadoA === usuario);
+        tareas = rol === "admin"
+            ? data
+            : data.filter(t => t.asignadoA === usuario);
 
         actualizarVista();
     }
@@ -72,7 +73,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const li = document.createElement("li");
             li.innerHTML = `
                 <strong>${t.nombre}</strong><br>
-                Estado: ${t.estatus}<br>
+                Estado: ${t.estado}<br>
                 Creado por: ${t.creadoPor}<br>
                 Asignado a: ${t.asignadoA}<br>
                 Fecha: ${new Date(t.fechaCreacion).toLocaleDateString()}<br>
@@ -89,83 +90,75 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // 🟢 Crear tarea (solo admin)
-    if (botonAgregar) {
-        botonAgregar.onclick = async () => {
-            const nombre = tareaInput.value.trim();
-            const asignadoA = asignadoAInput.value;
-            const fechaLimite = fechaLimiteInput.value;
+    // Crear tarea (solo admin)
+    botonAgregar.onclick = async () => {
+        const nombre = tareaInput.value.trim();
+        const asignadoA = asignadoAInput.value;
+        const fechaLimite = fechaLimiteInput.value;
 
-            if (!nombre || !asignadoA) return alert("Faltan datos");
+        if (!nombre || !asignadoA) return alert("Faltan datos");
 
-            await fetch("/tareas", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + token
-                },
-                body: JSON.stringify({ nombre, asignadoA, fechaLimite })
-            });
+        await fetch("http://localhost:3000/tareas", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({ nombre, asignadoA, fechaLimite })
+        });
 
-            tareaInput.value = "";
-            cargarTareas();
-        };
-    }
+        tareaInput.value = "";
+        cargarTareas();
+    };
 
-    // 🔴 Eliminar (solo admin)
-    if (btnEliminar) {
-        btnEliminar.onclick = async () => {
-            if (!tareaSeleccionada) return alert("Selecciona una tarea");
+    // Eliminar (solo admin)
+    btnEliminar.onclick = async () => {
+        if (!tareaSeleccionada) return alert("Selecciona una tarea");
 
-            await fetch(`/tareas/${tareaSeleccionada.id}`, {
-                method: "DELETE",
-                headers: { Authorization: "Bearer " + token }
-            });
+        await fetch(`http://localhost:3000/tareas/${tareaSeleccionada.id}`, {
+            method: "DELETE",
+            headers: { Authorization: "Bearer " + token }
+        });
 
-            cargarTareas();
-        };
-    }
+        cargarTareas();
+    };
 
-    // 🟡 Editar (solo admin)
-    if (btnEditar) {
-        btnEditar.onclick = async () => {
-            if (!tareaSeleccionada) return alert("Selecciona una tarea");
+    // Editar (solo admin)
+    btnEditar.onclick = async () => {
+        if (!tareaSeleccionada) return alert("Selecciona una tarea");
 
-            const nuevo = prompt("Nuevo nombre:", tareaSeleccionada.nombre);
-            if (!nuevo) return;
+        const nuevo = prompt("Nuevo nombre:", tareaSeleccionada.nombre);
+        if (!nuevo) return;
 
-            await fetch(`/tareas/${tareaSeleccionada.id}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + token
-                },
-                body: JSON.stringify({ nombre: nuevo })
-            });
+        await fetch(`http://localhost:3000/tareas/${tareaSeleccionada.id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({ nombre: nuevo })
+        });
 
-            cargarTareas();
-        };
-    }
+        cargarTareas();
+    };
 
-    // 🔵 Cambiar estado (TODOS)
-    if (btnEstado) {
-        btnEstado.onclick = async () => {
-            if (!tareaSeleccionada) return alert("Selecciona una tarea");
+    // Cambiar estado (todos)
+    btnEstado.onclick = async () => {
+        if (!tareaSeleccionada) return alert("Selecciona una tarea");
 
-            const nuevoEstado = tareaSeleccionada.estatus === "pendiente" ? "completado" : "pendiente";
+        const nuevoEstado = tareaSeleccionada.estado === "Pendiente" ? "Completado" : "Pendiente";
 
-            await fetch(`/tareas/${tareaSeleccionada.id}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + token
-                },
-                body: JSON.stringify({ estatus: nuevoEstado })
-            });
+        await fetch(`http://localhost:3000/tareas/${tareaSeleccionada.id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({ estado: nuevoEstado })
+        });
 
-            cargarTareas();
-        };
-    }
+        cargarTareas();
+    };
 
     cargarTareas();
 });
