@@ -1,114 +1,211 @@
-// server.js
-
-const express = require('express');
-const bodyParser = require('body-parser');
-const fs = require('fs').promises; // Para trabajar con archivos de manera asincrónica
-const path = require('path');
+const express = require("express");
+const fs = require("fs").promises;
+const path = require("path");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const PORT = 3000;
+const SECRET = "CLAVE_SUPER_SECRETA";
 
-app.use(bodyParser.json());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
 
-// Ruta base de prueba
-app.get('/', (req, res) => {
-    res.send('¡Servidor Express funcionando correctamente!');
+const USERS_FILE = path.join(__dirname, "users.json");
+const TASKS_FILE = path.join(__dirname, "tareas.json");
+
+/* ================== UTILIDADES ================== */
+async function readJSON(file) {
+    try {
+        const data = await fs.readFile(file, "utf8");
+        return data ? JSON.parse(data) : [];
+    } catch (err) {
+        if (err.code === "ENOENT") return [];
+        throw err;
+    }
+}
+
+async function writeJSON(file, data) {
+    await fs.writeFile(file, JSON.stringify(data, null, 2));
+}
+
+/* ================== JWT ================== */
+function auth(req, res, next) {
+    const header = req.headers["authorization"];
+    if (!header) return res.status(401).json({ error: "Token requerido" });
+
+    const token = header.split(" ")[1];
+    jwt.verify(token, SECRET, (err, user) => {
+        if (err) return res.status(403).json({ error: "Token inválido" });
+        req.user = user;
+        next();
+    });
+}
+
+/* ================== FRONTEND ================== */
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "enlaceweb.html"));
 });
 
-// Ruta GET /tareas - Devuelve todas las tareas
-app.get('/tareas', async (req, res, next) => {
+app.get("/gestor", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "gestor.html"));
+});
+
+/* ================== USUARIOS ================== */
+app.post("/register", async (req, res, next) => {
     try {
-        const data = await fs.readFile(path.join(__dirname, 'tareas.json'), 'utf8');
-        const tareas = JSON.parse(data);
-        res.json(tareas);
+        const { username, password, role } = req.body;
+
+        const users = await readJSON(USERS_FILE);
+        if (users.find(u => u.username === username))
+            return res.status(400).json({ error: "Usuario ya existe" });
+
+        const hashed = await bcrypt.hash(password, 10);
+
+        users.push({
+            username,
+            password: hashed,
+            role: role || "user"
+        });
+
+        await writeJSON(USERS_FILE, users);
+        res.json({ message: "Usuario registrado" });
     } catch (err) {
         next(err);
     }
 });
 
-// Ruta POST /tareas - Agregar nueva tarea
-app.post('/tareas', async (req, res, next) => {
+app.post("/login", async (req, res, next) => {
     try {
-        const { titulo, descripcion } = req.body;
-        if (!titulo || !descripcion) {
-            return res.status(400).json({ error: 'Se requiere título y descripción' });
-        }
+        const { username, password } = req.body;
+        const users = await readJSON(USERS_FILE);
+        const user = users.find(u => u.username === username);
 
-        const data = await fs.readFile(path.join(__dirname, 'tareas.json'), 'utf8');
-        const tareas = JSON.parse(data);
+        if (!user) return res.status(400).json({ error: "Usuario no encontrado" });
 
-        const nuevaTarea = {
-            id: Date.now(), // ID único basado en timestamp
-            titulo,
-            descripcion
+        const valid = await bcrypt.compare(password, user.password);
+        if (!valid) return res.status(401).json({ error: "Contraseña incorrecta" });
+
+        const token = jwt.sign(
+            { username: user.username, role: user.role },
+            SECRET,
+            { expiresIn: "2h" }
+        );
+
+        res.json({ token });
+    } catch (err) {
+        next(err);
+    }
+});
+
+/* ================== TAREAS ================== */
+app.get("/tareas", auth, async (req, res, next) => {
+    try {
+        const tareas = await readJSON(TASKS_FILE);
+        const visibles = tareas.filter(t =>
+            t.asignadoA === req.user.username || t.creadoPor === req.user.username
+        );
+        res.json(visibles);
+    } catch (err) {
+        next(err);
+    }
+});
+
+app.post("/tareas", auth, async (req, res, next) => {
+    try {
+        if (req.user.role !== "admin")
+            return res.status(403).json({ error: "Solo admin puede crear tareas" });
+
+        const { nombre, fechaLimite, asignadoA } = req.body;
+        if (!nombre || !fechaLimite || !asignadoA)
+            return res.status(400).json({ error: "Datos incompletos" });
+
+        const users = await readJSON(USERS_FILE);
+        if (!users.find(u => u.username === asignadoA))
+            return res.status(400).json({ error: "Usuario asignado no existe" });
+
+        const tareas = await readJSON(TASKS_FILE);
+
+        const nueva = {
+            id: Date.now(),
+            nombre,
+            estatus: "Pendiente",
+            fechaCreacion: new Date().toISOString().split("T")[0],
+            fechaLimite,
+            creadoPor: req.user.username,
+            asignadoA
         };
 
-        tareas.push(nuevaTarea);
-        await fs.writeFile(path.join(__dirname, 'tareas.json'), JSON.stringify(tareas, null, 2));
-
-        res.status(201).json(nuevaTarea);
+        tareas.push(nueva);
+        await writeJSON(TASKS_FILE, tareas);
+        res.json(nueva);
     } catch (err) {
         next(err);
     }
 });
 
-// Ruta PUT /tareas/:id - Actualizar tarea existente
-app.put('/tareas/:id', async (req, res, next) => {
+app.put("/tareas/:id", auth, async (req, res, next) => {
     try {
-        const tareaId = parseInt(req.params.id);
-        const { titulo, descripcion } = req.body;
+        const tareas = await readJSON(TASKS_FILE);
+        const tarea = tareas.find(t => t.id == req.params.id);
+        if (!tarea) return res.status(404).json({ error: "Tarea no encontrada" });
 
-        const data = await fs.readFile(path.join(__dirname, 'tareas.json'), 'utf8');
-        const tareas = JSON.parse(data);
+        // Usuario normal solo puede cambiar estatus de SU tarea
+        if (req.user.role === "user") {
+            if (tarea.asignadoA !== req.user.username)
+                return res.status(403).json({ error: "No es tu tarea" });
 
-        const tareaIndex = tareas.findIndex(t => t.id === tareaId);
-        if (tareaIndex === -1) return res.status(404).json({ error: 'Tarea no encontrada' });
+            if (!req.body.estatus)
+                return res.status(403).json({ error: "Solo puedes cambiar estatus" });
 
-        // Actualizar los campos si se proporcionan
-        if (titulo) tareas[tareaIndex].titulo = titulo;
-        if (descripcion) tareas[tareaIndex].descripcion = descripcion;
+            tarea.estatus = req.body.estatus;
+            await writeJSON(TASKS_FILE, tareas);
+            return res.json(tarea);
+        }
 
-        await fs.writeFile(path.join(__dirname, 'tareas.json'), JSON.stringify(tareas, null, 2));
+        // Admin puede editar todo
+        const { nombre, fechaLimite, asignadoA, estatus } = req.body;
+        if (nombre) tarea.nombre = nombre;
+        if (fechaLimite) tarea.fechaLimite = fechaLimite;
+        if (asignadoA) tarea.asignadoA = asignadoA;
+        if (estatus) tarea.estatus = estatus;
 
-        res.json(tareas[tareaIndex]);
+        await writeJSON(TASKS_FILE, tareas);
+        res.json(tarea);
     } catch (err) {
         next(err);
     }
 });
 
-// Ruta DELETE /tareas/:id - Eliminar tarea
-app.delete('/tareas/:id', async (req, res, next) => {
+app.delete("/tareas/:id", auth, async (req, res, next) => {
     try {
-        const tareaId = parseInt(req.params.id);
+        if (req.user.role !== "admin")
+            return res.status(403).json({ error: "Solo admin puede borrar" });
 
-        const data = await fs.readFile(path.join(__dirname, 'tareas.json'), 'utf8');
-        let tareas = JSON.parse(data);
+        const tareas = await readJSON(TASKS_FILE);
+        const nuevas = tareas.filter(t => t.id != req.params.id);
 
-        const tareaIndex = tareas.findIndex(t => t.id === tareaId);
-        if (tareaIndex === -1) return res.status(404).json({ error: 'Tarea no encontrada' });
+        if (tareas.length === nuevas.length)
+            return res.status(404).json({ error: "Tarea no encontrada" });
 
-        const tareaEliminada = tareas.splice(tareaIndex, 1)[0];
-
-        await fs.writeFile(path.join(__dirname, 'tareas.json'), JSON.stringify(tareas, null, 2));
-
-        res.json({ mensaje: 'Tarea eliminada', tarea: tareaEliminada });
+        await writeJSON(TASKS_FILE, nuevas);
+        res.json({ message: "Tarea eliminada" });
     } catch (err) {
         next(err);
     }
 });
 
-// Manejo de rutas no encontradas
-app.use((req, res, next) => {
-    res.status(404).json({ error: 'Ruta no encontrada' });
+/* ================== ERRORES ================== */
+app.use((req, res) => {
+    res.status(404).json({ error: "Ruta no encontrada", ruta: req.originalUrl });
 });
 
-// Manejo de errores generales
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Ocurrió un error en el servidor' });
+    console.error("ERROR:", err);
+    res.status(500).json({ error: "Error interno", mensaje: err.message });
 });
 
-// Iniciar servidor
+/* ================== SERVER ================== */
 app.listen(PORT, () => {
-    console.log(`Servidor escuchando en http://localhost:${PORT}`);
+    console.log("Servidor corriendo en http://localhost:" + PORT);
 });

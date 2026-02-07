@@ -1,0 +1,22 @@
+[
+  {
+    "username": "infinite",
+    "password": "$2b$10$NgDVjCGkUUH1B5kqnMWxIu411Iq06ojTwZVfkFn5S0r4DhtqCGLLO",
+    "role": "admin"
+  },
+  {
+    "username": "mordecai",
+    "password": "$2b$10$VjGDySbTgPnJ/hBNe9Yt9u3t/vM3Wq2n9S.oeUOZIKjkBI3bNHO22",
+    "role": "user"
+  },
+  {
+    "username": "rigby",
+    "password": "$2b$10$0Y3we0lRvqUJid1A71gm8.PdWTIgXFOOwCapRbECnVnQFE4gezIqS",
+    "role": "user"
+  },
+  {
+    "username": "skips",
+    "password": "$2b$10$MnexagXFOFkf3crO9muvhuwEL/NKqyAysfjIxCDVDselKQs9.G9OW",
+    "role": "user"
+  }
+]
