@@ -18,5 +18,10 @@
     "username": "skips",
     "password": "$2b$10$MnexagXFOFkf3crO9muvhuwEL/NKqyAysfjIxCDVDselKQs9.G9OW",
     "role": "user"
+  },
+  {
+    "username": "benson",
+    "password": "$2b$08$FxYgxoNIzenjBHeGevk8a.VlFi7KE3h6n9BR.5zlupol1Jik9pBOO",
+    "role": "user"
   }
 ]
